@@ -1,0 +1,71 @@
+Dashboard
+Orders
+Stock Name
+Product Type
+Qty.
+Placed Price
+Executed Price
+LTP
+Status
+NIFTY
+NSE FO
+16 Jun 2026 23800
+PE
+SELL
+CF
+20
+/20 Lot(s)
+(1 Lot = 65)
+47.00
+47.00
+40.10
+-14.7%
+EXECUTED
+15-Jun-2026 09:25:24
+NIFTY
+NSE FO
+16 Jun 2026 24200
+CE
+SELL
+CF
+20
+/20 Lot(s)
+(1 Lot = 65)
+52.50
+52.50
+44.00
+-16.2%
+EXECUTED
+15-Jun-2026 09:26:10
+B
+S
+NIFTY
+NSE FO
+16 Jun 2026 23800
+PE
+BUY
+CF
+20
+/20 Lot(s)
+(1 Lot = 65)
+30.00
+31.25
+40.10
++28.3%
+EXECUTED
+15-Jun-2026 11:02:41
+NIFTY
+NSE FO
+16 Jun 2026 24200
+CE
+BUY
+CF
+20
+/20 Lot(s)
+(1 Lot = 65)
+60.00
+-
+44.00
+-16.2%
+CANCELLED
+15-Jun-2026 11:05:03
