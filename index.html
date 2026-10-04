@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trade Recorder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+:root {
+  --bg:       #EEF2F7;
+  --surface:  #FFFFFF;
+  --border:   #E2E8F0;
+  --text:     #0F172A;
+  --muted:    #64748B;
+  --faint:    #94A3B8;
+  --blue:     #2563EB;
+  --blue-bg:  #EFF6FF;
+  --green:    #16A34A;
+  --green-bg: #F0FDF4;
+  --red:      #DC2626;
+  --red-bg:   #FEF2F2;
+  --amber:    #B45309;
+  --amber-bg: #FFFBEB;
+  --r:        10px;
+  --r-sm:     6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:28px 16px;}
+.wrap{max-width:1240px;margin:0 auto;}
+
+/* ── Header ── */
+.hdr{display:flex;align-items:center;gap:14px;margin-bottom:28px;}
+.hdr-icon{width:46px;height:46px;background:var(--blue);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.hdr h1{font-size:21px;font-weight:800;letter-spacing:-.3px;}
+.hdr .sub{font-size:13px;color:var(--faint);margin-top:3px;}
+
+/* ── Card ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px 24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+
+/* ── Step badge ── */
+.badge-step{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;}
+.s1{background:var(--green-bg);color:#166534;}
+.s2{background:var(--blue-bg);color:#1D4ED8;}
+.s3{background:#FEF3C7;color:#92400E;}
+.s4{background:#F3E8FF;color:#6B21A8;}
+.card h2{font-size:15px;font-weight:700;margin-bottom:5px;}
+.card .desc{font-size:13px;color:var(--muted);margin-bottom:15px;line-height:1.5;}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r-sm);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:inherit;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:#1D4ED8;}
+.btn-secondary{background:var(--blue-bg);color:var(--blue);border:1px solid #BFDBFE;}
+.btn-secondary:hover{background:#DBEAFE;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--bg);}
+.btn-export{background:linear-gradient(135deg,#1E40AF,#2563EB);color:#fff;padding:10px 24px;font-size:14px;}
+.btn-export:hover{background:linear-gradient(135deg,#1E3A8A,#1E40AF);}
+.btn-export:disabled{opacity:.5;cursor:not-allowed;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+
+/* ── File / info boxes ── */
+.row-flex{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px;}
+.info-box{display:flex;align-items:center;gap:12px;background:var(--green-bg);border:1px solid #BBF7D0;border-radius:var(--r-sm);padding:11px 14px;margin-top:12px;}
+.info-box .itxt{font-size:13px;font-weight:600;color:#166534;}
+.info-box .isub{font-size:12px;color:#16A34A;margin-top:2px;}
+.err-box{background:var(--red-bg);border:1px solid #FECACA;border-radius:var(--r-sm);padding:8px 13px;font-size:13px;color:var(--red);margin-top:10px;}
+
+/* ── Textarea ── */
+textarea{width:100%;min-height:130px;border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;color:var(--text);background:#FAFAFA;resize:vertical;outline:none;transition:border-color .15s;}
+textarea:focus{border-color:var(--blue);}
+
+/* ── Table ── */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-sm);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{background:#F8FAFC;padding:9px 10px;text-align:left;font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#FAFBFF;}
+tbody td{padding:6px 10px;vertical-align:middle;}
+
+/* ── Editable inputs ── */
+.ed{border:1px solid transparent;border-radius:4px;padding:3px 6px;outline:none;transition:border-color .15s;background:transparent;font-family:inherit;font-size:13px;color:var(--text);width:100%;}
+.ed:focus{border-color:var(--blue);background:#fff;}
+.ed[type=number]{-moz-appearance:textfield;}
+.ed[type=number]::-webkit-outer-spin-button,.ed[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+select.ed{appearance:auto;cursor:pointer;padding:3px 4px;}
+
+/* ── Inline badges ── */
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;}
+.pill-ce{background:var(--blue-bg);color:#1D4ED8;}
+.pill-pe{background:#FDF2F8;color:#9D174D;}
+.pill-sell{background:var(--red-bg);color:var(--red);}
+.pill-buy{background:var(--green-bg);color:var(--green);}
+
+/* ── Delete btn ── */
+.del{background:none;border:none;cursor:pointer;color:var(--faint);padding:2px 6px;border-radius:4px;font-size:14px;transition:color .15s,background .15s;line-height:1;}
+.del:hover{color:var(--red);background:var(--red-bg);}
+
+/* ── Totals ── */
+.totals-row{display:flex;align-items:stretch;gap:12px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;}
+.tot-card{border-radius:var(--r-sm);padding:12px 20px;text-align:right;}
+.tot-sell{background:var(--red-bg);border:1px solid #FECACA;}
+.tot-buy{background:var(--green-bg);border:1px solid #BBF7D0;}
+.tot-today{background:var(--amber-bg);border:1px solid #FDE68A;}
+.tot-grand{background:linear-gradient(135deg,#1E40AF,#2563EB);color:#fff;}
+.tot-label{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;opacity:.7;margin-bottom:3px;}
+.tot-sell .tot-label{color:var(--red);}
+.tot-buy  .tot-label{color:var(--green);}
+.tot-today .tot-label{color:var(--amber);}
+.tot-value{font-size:22px;font-weight:800;}
+.tot-sell .tot-value{color:var(--red);}
+.tot-buy  .tot-value{color:var(--green);}
+.tot-today .tot-value{color:#B45309;}
+.calcu-cell{font-weight:700;color:var(--amber);}
+.totalqty-cell{font-weight:600;}
+
+/* ── Divider ── */
+hr{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+/* ── Hidden ── */
+.hidden{display:none!important;}
+
+/* ── Note ── */
+.note{font-size:12px;color:var(--faint);margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-icon">📈</div>
+    <div>
+      <h1>Trade Recorder</h1>
+      <div class="sub" id="todayDate"></div>
+    </div>
+  </div>
+
+  <!-- ── STEP 1: Previous file (optional) ── -->
+  <div class="card">
+    <div class="badge-step s1">Step 1 · Optional</div>
+    <h2>Load previous spreadsheet</h2>
+    <p class="desc">Have an existing .xlsx from this tool? Upload it and today's trades will be appended to it.</p>
+
+    <div id="prevUploadArea">
+      <div class="row-flex">
+        <input type="file" id="prevFileIn" accept=".xlsx" style="display:none">
+        <button class="btn btn-secondary" onclick="document.getElementById('prevFileIn').click()">📂 Upload .xlsx</button>
+        <span style="color:var(--faint);font-size:13px;">or skip — a fresh file will be created</span>
+      </div>
+    </div>
+
+    <div id="prevLoading" class="hidden" style="margin-top:12px;font-size:13px;color:var(--muted);">⏳ Reading file…</div>
+    <div id="prevErr" class="err-box hidden"></div>
+
+    <div id="prevOK" class="hidden">
+      <div class="info-box">
+        <span style="font-size:20px;">✅</span>
+        <div style="flex:1;">
+          <div class="itxt" id="prevOKtxt"></div>
+          <div class="isub" id="prevOKsub"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="clearPrev()">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: Paste ── -->
+  <div class="card">
+    <div class="badge-step s2">Step 2</div>
+    <h2>Paste today's order history</h2>
+    <p class="desc">
+      In your broker's web platform → <strong>Order History</strong> tab → click anywhere on the table →
+      <strong>Ctrl+A</strong> to select all rows → <strong>Ctrl+C</strong> to copy → paste below.
+    </p>
+    <textarea id="pasteBox" placeholder="Paste the copied order history text here…"></textarea>
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="doParse()">⚡ Parse Trades</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pasteBox').value='';document.getElementById('pasteErr').classList.add('hidden')">Clear</button>
+    </div>
+    <div id="pasteErr" class="err-box hidden" style="margin-top:10px;"></div>
+    <p class="note">💡 Only EXECUTED trades are included. Data never leaves your browser — no API, no internet needed for processing.</p>
+  </div>
+
+  <!-- ── STEP 3: Review table ── -->
+  <div class="card hidden" id="tableCard">
+    <div class="badge-step s3">Step 3 · Review &amp; Edit</div>
+    <h2>Today's trades <span id="tradeCount" style="font-weight:400;color:var(--faint);"></span></h2>
+    <p class="desc">All fields are editable inline. Fix anything the parser got wrong, or add/delete rows.</p>
+
+    <div class="tbl-wrap">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th style="min-width:90px">Date</th>
+            <th style="min-width:85px">Stock</th>
+            <th style="min-width:70px">Type</th>
+            <th style="min-width:65px">Strike</th>
+            <th style="min-width:55px">CE/PE</th>
+            <th style="min-width:65px">Product</th>
+            <th style="min-width:75px">Lot Size</th>
+            <th style="min-width:50px">Qty</th>
+            <th style="min-width:75px">Total Qty</th>
+            <th style="min-width:100px">Exec. Price</th>
+            <th style="min-width:105px">Calcu (₹)</th>
+            <th style="width:32px"></th>
+          </tr>
+        </thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:10px;">
+      <button class="btn btn-ghost btn-sm" onclick="addBlankRow()">＋ Add Row</button>
+    </div>
+
+    <hr>
+
+    <div class="totals-row">
+      <div class="tot-card tot-sell hidden" id="todaySellCard">
+        <div class="tot-label">Today's Sell</div>
+        <div class="tot-value" id="todaySell">₹0</div>
+      </div>
+      <div class="tot-card tot-buy hidden" id="todayBuyCard">
+        <div class="tot-label">Today's Buy</div>
+        <div class="tot-value" id="todayBuy">₹0</div>
+      </div>
+      <div class="tot-card tot-grand hidden" id="grandTotCard">
+        <div class="tot-label">Grand Total (Prev + Today)</div>
+        <div class="tot-value" id="grandTotal">₹0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: Export ── -->
+  <div class="card hidden" id="exportCard">
+    <div class="badge-step s4">Step 4</div>
+    <h2>Export to Excel</h2>
+    <p class="desc">Downloads as a <strong>.xlsx</strong> file with colour-coded columns — <span style="color:#9C0006;font-weight:600;">SELL (red)</span> on the left, <span style="color:#375623;font-weight:600;">BUY (green)</span> on the right. Each day gets its own block with daily totals and running gross totals. Open in Excel or Google Sheets.</p>
+    <button class="btn btn-export" id="exportBtn" onclick="doExport()">⬇️ Download .xlsx</button>
+    <p class="note" style="margin-top:10px;">File name: <code id="exportFname"></code></p>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ─────────────────────────────────────────────
+//  Globals
+// ─────────────────────────────────────────────
+const COLS = ['Date','Stock Name','Type','Strike Rate','CE/PE','Product','Lot Size','Qty','Total Qty','Executed Price','Calcu (₹)'];
+
+const todayObj  = new Date();
+const _D_MON    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// Build date string explicitly — never use toLocaleDateString() whose output varies
+// by browser/OS/ICU version and can confuse Excel into auto-converting to serials.
+const todayStr  = `${String(todayObj.getDate()).padStart(2,'0')} ${_D_MON[todayObj.getMonth()]} ${todayObj.getFullYear()}`;
+const todayISO  = todayObj.toISOString().slice(0,10);
+
+document.getElementById('todayDate').textContent = todayStr;
+document.getElementById('exportFname').textContent = `trades_${todayISO}.xlsx`;
+
+let uid      = 1;
+let trades   = [];       // today's parsed+editable rows
+let prevTrades = null;   // trade objects parsed from uploaded xlsx
+let prevSum  = 0;
+
+// ─────────────────────────────────────────────
+//  Step 1 — previous file
+// ─────────────────────────────────────────────
+document.getElementById('prevFileIn').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) loadPrev(f);
+  e.target.value = '';
+});
+
+function loadPrev(file) {
+  hide('prevErr'); hide('prevOK');
+  show('prevLoading');
+
+  file.arrayBuffer().then(ab => {
+    try {
+      const wb  = XLSX.read(ab, { cellDates: true });
+      const ws  = wb.Sheets[wb.SheetNames[0]];
+      const all = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+
+      const extracted = [];
+
+      for (const row of all) {
+        if (!Array.isArray(row)) continue;
+        // Left side: old format (any trade) OR new format (SELL side), cols 0-10
+        const t1 = tryParseTrade(row, 0);
+        if (t1) extracted.push(t1);
+        // Right side: new format BUY side, cols 12-22
+        if (row.length > 12) {
+          const t2 = tryParseTrade(row, 12);
+          if (t2) extracted.push(t2);
+        }
+      }
+
+      if (extracted.length === 0)
+        throw new Error('No trade rows found. Make sure this is a file exported by this tool.');
+
+      prevTrades = extracted;
+      prevSum    = prevTrades.reduce((s, t) => s + (t.calcu || 0), 0);
+
+      const dates = [...new Set(extracted.map(t => t.date).filter(Boolean))];
+
+      hide('prevLoading');
+      id('prevOKtxt').textContent = `${extracted.length} row${extracted.length>1?'s':''} loaded · ${dates.length} trading day${dates.length>1?'s':''}`;
+      id('prevOKsub').textContent = `${dates[0]} → ${dates[dates.length-1]} · Previous total: ₹${fmt(prevSum)}`;
+      show('prevOK');
+      refreshTotals();
+    } catch(e) {
+      hide('prevLoading');
+      showErr('prevErr', e.message || 'Could not read file. Make sure it\'s a valid .xlsx from this tool.');
+    }
+  }).catch(() => {
+    hide('prevLoading');
+    showErr('prevErr', 'Error reading file.');
+  });
+}
+
+// Extract one trade from a row starting at `offset` (0 = left side, 12 = right side)
+function tryParseTrade(row, offset) {
+  const productVal = String(row[offset + 5] || '').trim().toUpperCase();
+  if (productVal !== 'SELL' && productVal !== 'BUY') return null;
+  const stockVal = String(row[offset + 1] || '').trim();
+  if (!stockVal || stockVal.toLowerCase() === 'stock name') return null;
+
+  // Date — normalise whatever format it's in to "DD Mon YYYY"
+  const dateStr = normDate(row[offset]);
+  if (!dateStr) return null;
+
+  return {
+    id:          uid++,
+    date:        dateStr,
+    stockName:   stockVal,
+    exchange:    String(row[offset + 2] || '').trim(),
+    strikePrice: String(row[offset + 3] || '').trim(),
+    ceOrPe:      String(row[offset + 4] || '').trim().toUpperCase(),
+    product:     productVal,
+    lotSize:     parseInt(row[offset + 6]) || 1,
+    qty:         parseInt(row[offset + 7]) || 0,
+    totalQty:    parseInt(row[offset + 8]) || 0,
+    ep:          parseFloat(String(row[offset + 9]).replace(/,/g,'')) || 0,
+    calcu:       parseFloat(String(row[offset + 10]).replace(/,/g,'')) || 0,
+  };
+}
+
+// Normalise any date representation to "DD Mon YYYY".
+// Handles: Date objects, Excel serial numbers, and common string formats
+// (e.g. "14 Jun 2026", "14-Jun-2026", "Jun 14, 2026", "14/06/2026", "2026-06-14").
+const _NORM_MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const _MON_IDX  = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+
+function normDate(raw) {
+  if (!raw && raw !== 0) return '';
+
+  // ① JS Date object (from SheetJS cellDates:true) — use UTC to avoid tz drift
+  if (raw instanceof Date) {
+    return `${String(raw.getUTCDate()).padStart(2,'0')} ${_NORM_MON[raw.getUTCMonth()]} ${raw.getUTCFullYear()}`;
+  }
+
+  // ② Excel serial number
+  if (typeof raw === 'number' && raw > 0) {
+    const d = new Date(Math.round((raw - 25569) * 86400000));
+    return `${String(d.getUTCDate()).padStart(2,'0')} ${_NORM_MON[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  }
+
+  if (typeof raw !== 'string') return '';
+  const s = raw.trim();
+  if (!s) return '';
+
+  // ③ Already in target format "DD Mon YYYY" — fast-path
+  if (/^\d{2} [A-Z][a-z]{2} \d{4}$/.test(s)) return s;
+
+  // ④ "DD-Mon-YYYY" or "DD Mon. YYYY"
+  const m1 = s.match(/^(\d{1,2})[\s\-.]([A-Za-z]{3})\.?[\s\-.]?(\d{4})$/);
+  if (m1) {
+    const mi = _MON_IDX[m1[2].toLowerCase()];
+    if (mi !== undefined)
+      return `${String(+m1[1]).padStart(2,'0')} ${_NORM_MON[mi]} ${m1[3]}`;
+  }
+
+  // ⑤ "Mon DD, YYYY"  e.g. "Jun 14, 2026"
+  const m2 = s.match(/^([A-Za-z]{3})\.?\s+(\d{1,2}),?\s+(\d{4})$/);
+  if (m2) {
+    const mi = _MON_IDX[m2[1].toLowerCase()];
+    if (mi !== undefined)
+      return `${String(+m2[2]).padStart(2,'0')} ${_NORM_MON[mi]} ${m2[3]}`;
+  }
+
+  // ⑥ ISO "YYYY-MM-DD"
+  const m3 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m3)
+    return `${m3[3]} ${_NORM_MON[+m3[2]-1]} ${m3[1]}`;
+
+  // ⑦ "DD/MM/YYYY"
+  const m4 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m4)
+    return `${String(+m4[1]).padStart(2,'0')} ${_NORM_MON[+m4[2]-1]} ${m4[3]}`;
+
+  // Fallback — return as-is
+  return s;
+}
+
+function clearPrev() {
+  prevTrades = null; prevSum = 0;
+  hide('prevOK'); hide('prevErr');
+  refreshTotals();
+}
+
+// ─────────────────────────────────────────────
+//  Step 2 — paste & parse
+// ─────────────────────────────────────────────
+function doParse() {
+  hide('pasteErr');
+  const raw = id('pasteBox').value.trim();
+  if (!raw) { showErr('pasteErr','Paste the copied order history text first.'); return; }
+
+  try {
+    const parsed = parseText(raw);
+    if (parsed.length === 0) {
+      showErr('pasteErr','No EXECUTED trades found. Make sure you copied the full table (including rows) from the Order History page.');
+      return;
+    }
+    trades = sortTrades(parsed);
+    renderTable();
+    show('tableCard'); show('exportCard');
+    id('tableCard').scrollIntoView({ behavior:'smooth', block:'start' });
+  } catch(e) {
+    showErr('pasteErr','Could not parse the text. Make sure you selected and copied the full table from the Order History page.');
+    console.error(e);
+  }
+}
+
+function parseText(raw) {
+  // Filter blank lines
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // Locate the header row "Stock Name" (preceded by nav/summary content from Ctrl+A)
+  let start = 0;
+  const hi = lines.indexOf('Stock Name');
+  if (hi !== -1) {
+    // Skip 7 column headers: Stock Name, Product Type, Qty., Placed Price, Executed Price, LTP, Status
+    start = hi + 7;
+  }
+
+  const result = [];
+
+  // ── ANCHOR STRATEGY ──────────────────────────────────────────────────────
+  // The source page sometimes injects UI noise between records (e.g. single-char "B"
+  // and "S" Buy/Sell buttons). A fixed forward-step of 15 lines breaks when
+  // noise appears.
+  //
+  // Fix: scan forward for datetime lines — they always end a record — then
+  // read exactly 14 lines *backwards* to extract all fields. Noise that sits
+  // between records is completely irrelevant to this approach.
+  //
+  // Each record's fixed structure relative to its datetime (anchor = i):
+  //   i-14  Stock Name       e.g. "NIFTY"
+  //   i-13  Exchange         e.g. "NSE FO"
+  //   i-12  Expiry + Strike  e.g. "16 Jun 2026 23800"
+  //   i-11  CE / PE          e.g. "PE"
+  //   i-10  SELL / BUY
+  //   i- 9  CF               (skip)
+  //   i- 8  Executed qty     e.g. "20"
+  //   i- 7  /N Lot(s)        (skip)
+  //   i- 6  (1 Lot = 65)
+  //   i- 5  Placed price     (skip)
+  //   i- 4  Executed price   e.g. "47.00"  or "-" for CANCELLED
+  //   i- 3  LTP              (skip)
+  //   i- 2  LTP change %     (skip)
+  //   i- 1  Status           "EXECUTED" or "CANCELLED"
+  //   i     Datetime         e.g. "15-Jun-2026 09:25:24"
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const dtPattern = /^\d{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2}:\d{2}$/;
+
+  for (let i = start; i < lines.length; i++) {
+    if (!dtPattern.test(lines[i])) continue;   // not a datetime line — skip
+    if (i - 14 < start)           continue;   // not enough lines above it
+
+    const status      = lines[i -  1];
+    // i-2 = LTP change %   skip
+    // i-3 = LTP            skip
+    const execLine    = lines[i -  4];  // executed price or "-"
+    // i-5 = placed price   skip
+    const lotLine     = lines[i -  6];  // "(1 Lot = 65)"
+    // i-7 = "/N Lot(s)"    skip
+    const execQtyStr  = lines[i -  8];  // "20"
+    // i-9 = CF             skip
+    const product     = lines[i - 10].toUpperCase();  // SELL / BUY
+    const ceOrPe      = lines[i - 11].toUpperCase();  // CE / PE
+    const expiryLine  = lines[i - 12];  // "16 Jun 2026 23800"
+    const exchange    = lines[i - 13];  // "NSE FO"
+    const stockName   = lines[i - 14];  // "NIFTY"
+
+    if (status !== 'EXECUTED') continue;
+
+    // Strike = last token of the expiry line  e.g. "23800"
+    const strikeParts = expiryLine.trim().split(/\s+/);
+    const strikePrice = strikeParts[strikeParts.length - 1];
+
+    // Lot size from "(1 Lot = 65)"
+    const lm      = lotLine.match(/\(1 Lot = (\d+)\)/i);
+    const lotSize = lm ? parseInt(lm[1]) : 1;
+
+    // Executed qty — plain integer
+    const qty = parseInt(execQtyStr) || 0;
+
+    // Executed price — strip Indian comma formatting
+    const ep = parseFloat(execLine.replace(/,/g, '')) || 0;
+
+    const totalQty = qty * lotSize;
+    const calcu    = totalQty * ep;
+
+    result.push({ id:uid++, date:todayStr, stockName, exchange, strikePrice,
+                  ceOrPe: (ceOrPe==='CE'||ceOrPe==='PE') ? ceOrPe : '',
+                  product, lotSize, qty, totalQty, ep, calcu });
+  }
+
+  return result;
+}
+
+// Sort: CE SELL → PE SELL → CE BUY → PE BUY → Others
+function sortPriority(t) {
+  if (t.ceOrPe==='CE' && t.product==='SELL') return 1;
+  if (t.ceOrPe==='PE' && t.product==='SELL') return 2;
+  if (t.ceOrPe==='CE' && t.product==='BUY')  return 3;
+  if (t.ceOrPe==='PE' && t.product==='BUY')  return 4;
+  return 5;
+}
+function sortTrades(arr) { return [...arr].sort((a,b) => sortPriority(a) - sortPriority(b)); }
+
+// ─────────────────────────────────────────────
+//  Step 3 — table render & edit
+// ─────────────────────────────────────────────
+function renderTable() {
+  const tbody = id('tbl-body');
+  tbody.innerHTML = '';
+  trades.forEach(t => tbody.appendChild(makeRow(t)));
+  id('tradeCount').textContent = `(${trades.length} trade${trades.length!==1?'s':''})`;
+  refreshTotals();
+}
+
+function makeRow(t) {
+  const tr = document.createElement('tr');
+  tr.dataset.id = t.id;
+
+  // CE/PE dropdown options
+  const cepeOpts = ['CE','PE',''].map(v =>
+    `<option value="${v}" ${t.ceOrPe===v?'selected':''}>${v||'—'}</option>`).join('');
+
+  // Product dropdown
+  const prodOpts = ['SELL','BUY'].map(v =>
+    `<option value="${v}" ${t.product===v?'selected':''}>${v}</option>`).join('');
+
+  tr.innerHTML = `
+    <td><input class="ed" value="${esc(t.date)}"        onchange="upd(${t.id},'date',this.value)"></td>
+    <td><input class="ed" value="${esc(t.stockName)}"   onchange="upd(${t.id},'stockName',this.value)" style="min-width:75px"></td>
+    <td><input class="ed" value="${esc(t.exchange)}"    onchange="upd(${t.id},'exchange',this.value)"  style="min-width:60px"></td>
+    <td><input class="ed" value="${esc(t.strikePrice)}" onchange="upd(${t.id},'strikePrice',this.value)" style="min-width:55px"></td>
+    <td><select class="ed" onchange="upd(${t.id},'ceOrPe',this.value)">${cepeOpts}</select></td>
+    <td><select class="ed" onchange="upd(${t.id},'product',this.value)">${prodOpts}</select></td>
+    <td><input class="ed" type="number" min="1" value="${t.lotSize}" onchange="upd(${t.id},'lotSize',+this.value)"></td>
+    <td><input class="ed" type="number" min="1" value="${t.qty}"     onchange="upd(${t.id},'qty',+this.value)"></td>
+    <td class="totalqty-cell" id="tq-${t.id}">${fmtN(t.totalQty)}</td>
+    <td><input class="ed" type="number" step="0.01" value="${t.ep}" onchange="upd(${t.id},'ep',+this.value)"></td>
+    <td class="calcu-cell" id="ca-${t.id}">₹${fmt(t.calcu)}</td>
+    <td><button class="del" onclick="delRow(${t.id})" title="Delete row">✕</button></td>
+  `;
+  return tr;
+}
+
+function upd(tid, field, val) {
+  const t = trades.find(x => x.id === tid);
+  if (!t) return;
+  t[field] = val;
+
+  // Recalculate derived fields when numeric inputs change
+  if (['lotSize','qty','ep'].includes(field)) {
+    t.totalQty = (t.lotSize || 0) * (t.qty || 0);
+    t.calcu    = t.totalQty * (t.ep || 0);
+    const tqEl = id(`tq-${tid}`);
+    const caEl = id(`ca-${tid}`);
+    if (tqEl) tqEl.textContent = fmtN(t.totalQty);
+    if (caEl) caEl.textContent = `₹${fmt(t.calcu)}`;
+  }
+  refreshTotals();
+}
+
+function delRow(tid) {
+  trades = trades.filter(t => t.id !== tid);
+  const tr = document.querySelector(`tr[data-id="${tid}"]`);
+  if (tr) tr.remove();
+  id('tradeCount').textContent = `(${trades.length} trade${trades.length!==1?'s':''})`;
+  refreshTotals();
+}
+
+function addBlankRow() {
+  const t = { id:uid++, date:todayStr, stockName:'', exchange:'NSE FO',
+              strikePrice:'', ceOrPe:'CE', product:'SELL',
+              lotSize:1, qty:1, totalQty:1, ep:0, calcu:0 };
+  trades.push(t);
+  id('tbl-body').appendChild(makeRow(t));
+  id('tradeCount').textContent = `(${trades.length} trade${trades.length!==1?'s':''})`;
+  refreshTotals();
+}
+
+function refreshTotals() {
+  const todaySell = trades.filter(t => t.product === 'SELL').reduce((s,t) => s + (t.calcu||0), 0);
+  const todayBuy  = trades.filter(t => t.product === 'BUY') .reduce((s,t) => s + (t.calcu||0), 0);
+  const todaySum  = todaySell + todayBuy;
+
+  // Show SELL card only when there are sell trades
+  if (todaySell > 0) {
+    id('todaySell').textContent = `₹${fmt(todaySell)}`;
+    show('todaySellCard');
+  } else { hide('todaySellCard'); }
+
+  // Show BUY card only when there are buy trades
+  if (todayBuy > 0) {
+    id('todayBuy').textContent = `₹${fmt(todayBuy)}`;
+    show('todayBuyCard');
+  } else { hide('todayBuyCard'); }
+
+  // Grand total only when previous data is loaded
+  if (prevTrades && prevTrades.length > 0) {
+    id('grandTotal').textContent = `₹${fmt(prevSum + todaySum)}`;
+    show('grandTotCard');
+  } else { hide('grandTotCard'); }
+}
+
+// ─────────────────────────────────────────────
+//  Step 4 — export (ExcelJS, styled 2-column)
+// ─────────────────────────────────────────────
+async function doExport() {
+  const btn = id('exportBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Generating…';
+
+  try {
+    // ── Merge prev + today, group by date (preserving order) ──────────────
+    const all = [...(prevTrades || []), ...trades];
+    if (all.length === 0) return;
+
+    const dateOrder = [];
+    const byDate    = {};
+    for (const t of all) {
+      if (!byDate[t.date]) { byDate[t.date] = []; dateOrder.push(t.date); }
+      byDate[t.date].push(t);
+    }
+
+    const cepeSort = v => v === 'CE' ? 0 : v === 'PE' ? 1 : 2;
+    const sortSide = arr => [...arr].sort((a,b) => cepeSort(a.ceOrPe) - cepeSort(b.ceOrPe));
+
+    // ── ExcelJS workbook ──────────────────────────────────────────────────
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Order History');
+
+    // Column widths: A-K (SELL), L (gap), M-W (BUY)
+    ws.columns = [
+      {width:12},{width:13},{width:9},{width:11},{width:6},{width:9},{width:8},{width:6},{width:9},{width:13},{width:12},
+      {width:3},
+      {width:12},{width:13},{width:9},{width:11},{width:6},{width:9},{width:8},{width:6},{width:9},{width:13},{width:12},
+    ];
+
+    // ── Colour palette ────────────────────────────────────────────────────
+    const C = {
+      sellHdrBg: 'FFC00000', sellHdrFg: 'FFFFFFFF',  // dark red  / white
+      sellRowBg: 'FFFFC7CE', sellRowFg: 'FF9C0006',  // light pink / dark red text
+      sellTotBg: 'FFFF9999', sellTotFg: 'FF9C0006',  // medium pink
+      sellGrsBg: 'FFC00000', sellGrsFg: 'FFFFFFFF',  // dark red / white
+      buyHdrBg:  'FF375623', buyHdrFg:  'FFFFFFFF',  // dark green / white
+      buyRowBg:  'FFE2EFDA', buyRowFg:  'FF375623',  // light green / dark green text
+      buyTotBg:  'FF92D050', buyTotFg:  'FF375623',  // medium green
+      buyGrsBg:  'FF375623', buyGrsFg:  'FFFFFFFF',  // dark green / white
+    };
+
+    const HDRS = ['Date','Stock Name','Type','Strike Rate','CE/PE','Product','Lot Size','Qty','Total Qty','Executed Price','Calcu (₹)'];
+    const L = 1;   // SELL side starts at col 1 (A)
+    const R = 13;  // BUY  side starts at col 13 (M)
+
+    // Helper: fill + font a contiguous cell range in a row
+    function style(row, from, to, bgARGB, fgARGB, bold=false) {
+      for (let c = from; c <= to; c++) {
+        const cell = row.getCell(c);
+        cell.fill      = { type:'pattern', pattern:'solid', fgColor:{argb:bgARGB} };
+        cell.font      = { color:{argb:fgARGB}, bold, size:10, name:'Calibri' };
+        cell.alignment = { vertical:'middle', horizontal:'center' };
+      }
+    }
+
+    let ri      = 1;    // current sheet row index (1-based)
+    let cumSell = 0;
+    let cumBuy  = 0;
+
+    // ── One block per trading day ─────────────────────────────────────────
+    for (const date of dateOrder) {
+      const sells = sortSide(byDate[date].filter(t => t.product === 'SELL'));
+      const buys  = sortSide(byDate[date].filter(t => t.product === 'BUY'));
+
+      // Header row
+      const hRow = ws.getRow(ri++);
+      hRow.height = 17;
+      HDRS.forEach((h, i) => {
+        const lc = hRow.getCell(L+i); lc.value = h; if(i===0) lc.numFmt='@';
+        const rc = hRow.getCell(R+i); rc.value = h; if(i===0) rc.numFmt='@';
+      });
+      style(hRow, L, L+10, C.sellHdrBg, C.sellHdrFg, true);
+      style(hRow, R, R+10, C.buyHdrBg,  C.buyHdrFg,  true);
+
+      // Data rows (both sides in parallel; shorter side leaves cells blank)
+      const n = Math.max(sells.length, buys.length);
+      for (let i = 0; i < n; i++) {
+        const row = ws.getRow(ri++);
+        row.height = 15;
+
+        if (i < sells.length) {
+          const t = sells[i];
+          [t.date, t.stockName, t.exchange, t.strikePrice, t.ceOrPe,
+           t.product, t.lotSize, t.qty, t.totalQty, t.ep, t.calcu
+          ].forEach((v, j) => {
+            const cell = row.getCell(L+j);
+            cell.value = v;
+            if (j === 0) cell.numFmt = '@'; // lock date as Text — prevents Excel converting to serial
+          });
+          // Only colour the Calcu cell (last column of SELL side)
+          const sc = row.getCell(L+10);
+          sc.fill = { type:'pattern', pattern:'solid', fgColor:{argb:C.sellRowBg} };
+          sc.font = { color:{argb:C.sellRowFg}, bold:true, size:10, name:'Calibri' };
+          sc.alignment = { vertical:'middle', horizontal:'center' };
+        }
+
+        if (i < buys.length) {
+          const t = buys[i];
+          [t.date, t.stockName, t.exchange, t.strikePrice, t.ceOrPe,
+           t.product, t.lotSize, t.qty, t.totalQty, t.ep, t.calcu
+          ].forEach((v, j) => {
+            const cell = row.getCell(R+j);
+            cell.value = v;
+            if (j === 0) cell.numFmt = '@'; // lock date as Text
+          });
+          // Only colour the Calcu cell (last column of BUY side)
+          const bc = row.getCell(R+10);
+          bc.fill = { type:'pattern', pattern:'solid', fgColor:{argb:C.buyRowBg} };
+          bc.font = { color:{argb:C.buyRowFg}, bold:true, size:10, name:'Calibri' };
+          bc.alignment = { vertical:'middle', horizontal:'center' };
+        }
+      }
+
+      // Day totals
+      const daySell = sells.reduce((s, t) => s + (t.calcu||0), 0);
+      const dayBuy  = buys.reduce((s,  t) => s + (t.calcu||0), 0);
+      cumSell += daySell;
+      cumBuy  += dayBuy;
+
+      // Total SELL / Total BUY row
+      const totRow = ws.getRow(ri++);
+      totRow.height = 15;
+      totRow.getCell(L+5).value  = 'Total SELL';
+      totRow.getCell(L+10).value = daySell;
+      totRow.getCell(R+5).value  = 'Total BUY';
+      totRow.getCell(R+10).value = dayBuy;
+      style(totRow, L, L+10, C.sellTotBg, C.sellTotFg, true);
+      style(totRow, R, R+10, C.buyTotBg,  C.buyTotFg,  true);
+
+      // GROSS SELL TOTAL / GROSS BUY TOTAL row (running cumulative)
+      const grsRow = ws.getRow(ri++);
+      grsRow.height = 15;
+      grsRow.getCell(L+5).value  = 'GROSS SELL TOTAL';
+      grsRow.getCell(L+10).value = cumSell;
+      grsRow.getCell(R+5).value  = 'GROSS BUY TOTAL';
+      grsRow.getCell(R+10).value = cumBuy;
+      style(grsRow, L, L+10, C.sellGrsBg, C.sellGrsFg, true);
+      style(grsRow, R, R+10, C.buyGrsBg,  C.buyGrsFg,  true);
+
+      // 2 blank padding rows between days
+      ri += 2;
+    }
+
+    // ── Write & download ──────────────────────────────────────────────────
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob   = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement('a');
+    a.href = url; a.download = `trades_${todayISO}.xlsx`; a.click();
+    URL.revokeObjectURL(url);
+
+  } catch(e) {
+    alert('Export failed: ' + (e.message || e));
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⬇️ Download .xlsx';
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Helpers
+// ─────────────────────────────────────────────
+function id(x)       { return document.getElementById(x); }
+function show(x)     { id(x).classList.remove('hidden'); }
+function hide(x)     { id(x).classList.add('hidden'); }
+function showErr(el, msg) { const e=id(el); e.textContent=msg; e.classList.remove('hidden'); }
+function esc(s)      { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmt(n)      { return Number(n).toLocaleString('en-IN',{maximumFractionDigits:2}); }
+function fmtN(n)     { return Number(n).toLocaleString('en-IN'); }
+</script>
+</body>
+</html>
