@@ -2,7 +2,7 @@
 
 A single-file web tool that turns a pasted broker order-history page into a colour-coded Excel ledger with daily and running totals. No backend, no sign-up, no data leaves the browser.
 
-**Live demo:** https://nirek-agarwal.github.io/trade-recorder/
+**Live demo:** https://nirek-agarwal.github.io/Trade-Recorder/
 **Try it without real data:** paste the contents of [`sample-order-history.txt`](sample-order-history.txt) into Step 2.
 
 ## Why I built it
